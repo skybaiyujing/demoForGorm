@@ -78,7 +78,20 @@ r.GET("/students", func(c *gin.Context) {
 ```
 ![image](https://github.com/user-attachments/assets/03684ddf-1577-4af4-8a0b-ffc0dd7cbaec)
 
-
+##2.0版本删除事务
+```
+func DeleteStudentBySno(db *gorm.DB, sno string) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("sno = ?", sno).Delete(&model.FamilyInfo{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Delete(&model.Student{}, "sno = ?", sno).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+```
 
 
 ##1.0版本：user结构体的GET、POST、DELETE接口
