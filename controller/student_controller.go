@@ -48,8 +48,8 @@ func RegisterStudentRoutes(r *gin.Engine, db *gorm.DB) {
 		}
 		c.JSON(http.StatusCreated, student)
 	})
-	r.DELETE("/students", func(c *gin.Context) {
-		sno := c.Param("sno")
+	r.DELETE("/students/:sno", func(c *gin.Context) {
+		sno := c.Param("sno") //“具体某个资源”，就用 c.Param() ；如果是“过滤多个资源”，才用 c.Query() 传查询参数。
 		err := service.DeleteStudentBySno(db, sno)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
