@@ -19,3 +19,7 @@ func CreateTable(db *gorm.DB) error {
 	//fmt.Println("创建表成功")
 	return nil
 }
+
+func CreateTablesStudent(db *gorm.DB) error {
+	return db.AutoMigrate(&model.Student{}, &model.FamilyInfo{}) //同时创建两个表
+}

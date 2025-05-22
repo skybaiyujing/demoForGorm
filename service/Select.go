@@ -33,3 +33,32 @@ func SelectWithField(db *gorm.DB, field string, value interface{}) ([]model.User
 	}
 	return users, nil
 }
+
+func QueryStudents(db *gorm.DB, query model.StudentQuery) ([]model.Student, int64, error) {
+	var students []model.Student
+	var total int64
+
+	tx := db.Model(&model.Student{}).Preload("FamilyInfo")
+
+	if query.Sname != "" {
+		tx = tx.Where("sname LIKE ?", "%"+query.Sname+"%")
+	}
+
+	if query.Ssex != "" {
+		tx = tx.Where("ssex = ?", query.Ssex)
+	}
+
+	if query.AgeMin != "" {
+		tx = tx.Where("sage >= ?", query.AgeMin)
+	}
+
+	if query.AgeMax != "" {
+		tx = tx.Where("sage <= ?", query.AgeMax)
+	}
+
+	tx.Count(&total)
+
+	offset := (query.Page - 1) * query.PageSize
+	result := tx.Offset(offset).Limit(query.PageSize).Find(&students)
+	return students, total, result.Error
+}
