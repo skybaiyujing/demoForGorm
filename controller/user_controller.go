@@ -59,4 +59,14 @@ func RegisterUserRoutes(r *gin.Engine, db *gorm.DB) {
 		}
 		c.JSON(http.StatusCreated, user)
 	})
+	r.DELETE("/users/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		err := service.DeleteUserByID(db, id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "用户删除成功"})
+	})
 }
