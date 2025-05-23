@@ -36,17 +36,29 @@ func RegisterStudentRoutes(r *gin.Engine, db *gorm.DB) {
 	})
 	r.POST("/students", func(c *gin.Context) {
 		var student model.Student
+		//ShouldBindJSON（) 把客户端发来的 JSON 请求体绑定（解析）成你指定的结构体
 		if err := c.ShouldBindJSON(&student); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, model.ReturnType{
+				Code:    400, //客户端错误
+				Message: "参数错误: " + err.Error(),
+				Data:    nil,
+			})
 			return
 		}
 		err := service.CreateStudentWithFamily(db, &student)
 		//err := service.UpdateStudent(db, &student)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+			c.JSON(http.StatusInternalServerError, model.ReturnType{
+				Code:    500, //	服务端错误
+				Message: "创建失败: " + err.Error(),
+				Data:    nil,
+			})
 		}
-		c.JSON(http.StatusCreated, student)
+		c.JSON(http.StatusCreated, model.ReturnType{
+			Code:    200,
+			Message: "创建成功",
+			Data:    student,
+		})
 	})
 	r.DELETE("/students/:sno", func(c *gin.Context) {
 		sno := c.Param("sno") //“具体某个资源”，就用 c.Param() ；如果是“过滤多个资源”，才用 c.Query() 传查询参数。
