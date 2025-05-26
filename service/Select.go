@@ -34,6 +34,15 @@ func SelectWithField(db *gorm.DB, field string, value interface{}) ([]model.User
 	return users, nil
 }
 
+func SelectStuWithSno(db *gorm.DB, ID string) ([]model.Student, error) {
+	//根据主键检索
+	var stu []model.Student
+	result := db.Where("sno = ?", ID).Preload("FamilyInfo").Find(&stu)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return stu, nil
+}
 func QueryStudents(db *gorm.DB, query model.StudentQuery) ([]model.Student, int64, error) {
 	var students []model.Student
 	var total int64
