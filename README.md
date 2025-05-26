@@ -1,4 +1,54 @@
 # demoForGorm
+##3.0版本：新建client客户端。分别使用http raw和resty完成对server中GET和POST的调用。新加入并发通过sno查找对应学生信息功能，其中加入了使用redis缓存来缓解数据库压力的部分。使用sync.WaitGroup三步走等待多个 goroutine 完成任务，才唤醒主程序
+```
+	snos := []int{1001, 1002, 1003, 1004, 1005}
+	out := make(chan model.Student, len(snos))
+	wg := sync.WaitGroup{} //等待多个 goroutine 执行完成的机制
+	rdb, ctx := client.InitReids()
+
+	for _, sno := range snos {
+		wg.Add(1)
+		go client.GetStudentWithRedisCache(sno, rdb, ctx, out, &wg)
+	}
+
+	wg.Wait() //主线程阻塞在此，直到所有 goroutine 执行完毕
+	close(out)
+
+	for stu := range out {
+		fmt.Printf("学生信息：Sno=%d, 姓名=%s\n", stu.Sno, stu.Sname)
+	}
+```
+```
+func GetStudentWithRedisCache(sno int, rdb *redis.Client, ctx context.Context, out chan<- model.Student, wg *sync.WaitGroup) {
+	defer wg.Done() //
+	key := fmt.Sprintf("student:%d", sno)
+	// 尝试从 Redis 中读取缓存
+	val, err := rdb.Get(ctx, key).Result()
+	if err == nil {
+		var cachedStudent model.Student
+		if err := json.Unmarshal([]byte(val), &cachedStudent); err == nil {
+			fmt.Println("来自 Redis 缓存：", sno)
+			out <- cachedStudent
+			return
+		}
+	}
+	// 如果 Redis 无缓存，则调用后端接口
+	resp, err := GetStuRawBySno(sno) // 返回的是 CommonResponse[[]model.Student]
+	if err != nil {
+		fmt.Println("查询失败：", err)
+		return
+	}
+	if len(resp.Data) == 0 {
+		fmt.Println("未找到学号对应的学生：", sno)
+		return
+	}
+	student := resp.Data[0]
+	// 存入 Redis（序列化为 JSON）
+	jsonBytes, _ := json.Marshal(student)
+	rdb.Set(ctx, key, jsonBytes, 10*time.Minute) // 设置 10 分钟缓存
+	out <- student
+}
+```
 ##建立数据库连接
 ```
 func InitDB() (*gorm.DB, error) {
